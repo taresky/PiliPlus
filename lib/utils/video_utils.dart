@@ -93,6 +93,21 @@ abstract final class VideoUtils {
               .toString();
   }
 
+  /// Stall recovery（借鉴 realzza/bilibili-accelerator）：播放持续卡顿时
+  /// 轮换到下一个可用 CDN。仅内存生效，不覆盖用户持久化的选择。
+  static CDNService nextCdnService() {
+    final values = CDNService.values;
+    int i = cdnService.index;
+    for (int step = 1; step < values.length; step++) {
+      final next = values[(i + step) % values.length];
+      if (next == CDNService.baseUrl) continue;
+      if (next != CDNService.backupUrl && next.host == null) continue;
+      cdnService = next;
+      return next;
+    }
+    return cdnService;
+  }
+
   static String getLiveCdnUrl(CodecItem e, {int index = 0}) {
     final urlInfo = e.urlInfo.getOrFirst(index);
     return (liveCdnUrl ?? urlInfo.host) + e.baseUrl + urlInfo.extra;

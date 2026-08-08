@@ -458,6 +458,9 @@ abstract final class Pref {
   static String? get customCdnHost =>
       _setting.get(SettingBoxKey.customCdnHost);
 
+  static bool get cdnStallRecovery =>
+      _setting.get(SettingBoxKey.cdnStallRecovery, defaultValue: true);
+
   static bool get cdnSpeedTest =>
       _setting.get(SettingBoxKey.cdnSpeedTest, defaultValue: true);
 

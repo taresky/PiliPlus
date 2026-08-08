@@ -166,6 +166,13 @@ class VideoDetailController extends GetxController
 
   PlayerStatus? playerStatus;
 
+  // stall recovery: 持续卡顿时自动轮换 CDN（借鉴 realzza/bilibili-accelerator）
+  Worker? _stallWorker;
+  Timer? _stallTimer;
+  DateTime? _lastCdnSwitch;
+  int _cdnSwitchCount = 0;
+  static const _maxCdnSwitches = 5;
+
   late final scrollKey = GlobalKey<ExtendedNestedScrollViewState>();
   late final RxBool isVertical;
   late final RxDouble scrollRatio = 0.0.obs;
@@ -386,6 +393,39 @@ class VideoDetailController extends GetxController
       vsync: this,
       initialIndex: Pref.defaultShowComment ? 1 : 0,
     );
+
+    if (!isFileSource && Pref.cdnStallRecovery) {
+      _stallWorker = ever(plPlayerController.isBuffering, _onBufferingChange);
+    }
+  }
+
+  void _onBufferingChange(bool buffering) {
+    _stallTimer?.cancel();
+    if (!buffering ||
+        _cdnSwitchCount >= _maxCdnSwitches ||
+        plPlayerController.cid != cid.value ||
+        !plPlayerController.playerStatus.isPlaying) {
+      return;
+    }
+    _stallTimer = Timer(const Duration(seconds: 8), () {
+      if (isClosed ||
+          isQuerying ||
+          !plPlayerController.isBuffering.value ||
+          plPlayerController.cid != cid.value ||
+          !plPlayerController.playerStatus.isPlaying) {
+        return;
+      }
+      final now = DateTime.now();
+      if (_lastCdnSwitch != null &&
+          now.difference(_lastCdnSwitch!) < const Duration(seconds: 30)) {
+        return;
+      }
+      _lastCdnSwitch = now;
+      _cdnSwitchCount++;
+      final next = VideoUtils.nextCdnService();
+      SmartDialog.showToast('播放卡顿，自动切换 CDN：${next.name}');
+      queryVideoUrl(fromReset: true);
+    });
   }
 
   Future<void> getMediaList({
@@ -1231,6 +1271,8 @@ class VideoDetailController extends GetxController
 
   @override
   void onClose() {
+    _stallTimer?.cancel();
+    _stallWorker?.dispose();
     cid.close();
     if (isFileSource) {
       cacheLocalProgress();
