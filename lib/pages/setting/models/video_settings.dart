@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:PiliPlus/models/common/video/audio_quality.dart';
+import 'package:PiliPlus/models/common/video/cdn_type.dart';
 import 'package:PiliPlus/models/common/video/live_quality.dart';
 import 'package:PiliPlus/models/common/video/video_decode_type.dart';
 import 'package:PiliPlus/models/common/video/video_quality.dart';
@@ -77,9 +78,10 @@ List<SettingsModel> get videoSettings => [
   const SwitchModel(
     title: '卡顿自动切换 CDN',
     leading: Icon(Icons.autorenew),
-    subtitle: '播放持续卡顿时自动轮换到下一个 CDN 并重载，仅本次运行生效，不修改默认 CDN',
+    subtitle: '持续卡顿约2.5秒时按列表轮换CDN，仍卡顿则每5秒继续；仅本次运行生效。点击选择轮换列表',
     setKey: SettingBoxKey.cdnStallRecovery,
     defaultVal: true,
+    onTap: _showStallPoolDialog,
   ),
   SwitchModel(
     title: '音频不跟随 CDN 设置',
@@ -177,6 +179,27 @@ List<SettingsModel> get videoSettings => [
     onTap: _showHwDecDialog,
   ),
 ];
+
+Future<void> _showStallPoolDialog(BuildContext context) async {
+  final res = await showDialog<List<CDNService>>(
+    context: context,
+    builder: (context) => OrderedMultiSelectDialog<CDNService>(
+      title: '卡顿切换 CDN 列表',
+      initValues: VideoUtils.stallPool,
+      values: {
+        for (final e in CDNService.values)
+          if (e != CDNService.baseUrl) e: e.label,
+      },
+    ),
+  );
+  if (res != null) {
+    VideoUtils.stallPool = res;
+    await GStorage.setting.put(
+      SettingBoxKey.cdnStallPool,
+      res.map((e) => e.name).toList(),
+    );
+  }
+}
 
 Future<void> _showCDNDialog(BuildContext context, VoidCallback setState) async {
   final res = await showCdnDialog(context);

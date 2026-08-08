@@ -166,12 +166,12 @@ class VideoDetailController extends GetxController
 
   PlayerStatus? playerStatus;
 
-  // stall recovery: 持续卡顿时自动轮换 CDN（借鉴 realzza/bilibili-accelerator）
+  // stall recovery: 持续卡顿时自动轮换 CDN，时序与
+  // realzza/bilibili-accelerator 一致（2.5s 宽限确认卡顿，卡顿持续则每 5s 继续轮换）
   Worker? _stallWorker;
   Timer? _stallTimer;
-  DateTime? _lastCdnSwitch;
-  int _cdnSwitchCount = 0;
-  static const _maxCdnSwitches = 5;
+  static const _stallGrace = Duration(milliseconds: 2500);
+  static const _stallRetry = Duration(milliseconds: 5000);
 
   late final scrollKey = GlobalKey<ExtendedNestedScrollViewState>();
   late final RxBool isVertical;
@@ -399,33 +399,31 @@ class VideoDetailController extends GetxController
     }
   }
 
+  // onWaiting/onPlaying：缓冲开始进入宽限期，恢复播放则取消
   void _onBufferingChange(bool buffering) {
     _stallTimer?.cancel();
-    if (!buffering ||
-        _cdnSwitchCount >= _maxCdnSwitches ||
+    _stallTimer = null;
+    if (buffering) {
+      _stallTimer = Timer(_stallGrace, _handleStall);
+    }
+  }
+
+  // 对齐 realzza 的 handleStall：先复查卡顿是否仍在，再轮换；
+  // 轮换后继续排查，直到恢复播放（buffering=false 会取消计时）。
+  void _handleStall() {
+    _stallTimer = null;
+    if (isClosed ||
+        isQuerying ||
+        !plPlayerController.isBuffering.value ||
         plPlayerController.cid != cid.value ||
         !plPlayerController.playerStatus.isPlaying) {
       return;
     }
-    _stallTimer = Timer(const Duration(seconds: 8), () {
-      if (isClosed ||
-          isQuerying ||
-          !plPlayerController.isBuffering.value ||
-          plPlayerController.cid != cid.value ||
-          !plPlayerController.playerStatus.isPlaying) {
-        return;
-      }
-      final now = DateTime.now();
-      if (_lastCdnSwitch != null &&
-          now.difference(_lastCdnSwitch!) < const Duration(seconds: 30)) {
-        return;
-      }
-      _lastCdnSwitch = now;
-      _cdnSwitchCount++;
-      final next = VideoUtils.nextCdnService();
-      SmartDialog.showToast('播放卡顿，自动切换 CDN：${next.name}');
-      queryVideoUrl(fromReset: true);
-    });
+    final next = VideoUtils.rotateCdnService();
+    if (next == null) return;
+    SmartDialog.showToast('播放卡顿，切换 CDN：${next.name}');
+    queryVideoUrl(fromReset: true);
+    _stallTimer = Timer(_stallRetry, _handleStall);
   }
 
   Future<void> getMediaList({

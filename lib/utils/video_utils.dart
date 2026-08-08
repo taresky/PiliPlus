@@ -93,19 +93,31 @@ abstract final class VideoUtils {
               .toString();
   }
 
-  /// Stall recovery（借鉴 realzza/bilibili-accelerator）：播放持续卡顿时
-  /// 轮换到下一个可用 CDN。仅内存生效，不覆盖用户持久化的选择。
-  static CDNService nextCdnService() {
-    final values = CDNService.values;
-    int i = cdnService.index;
-    for (int step = 1; step < values.length; step++) {
-      final next = values[(i + step) % values.length];
-      if (next == CDNService.baseUrl) continue;
-      if (next != CDNService.backupUrl && next.host == null) continue;
-      cdnService = next;
-      return next;
+  /// Stall recovery 轮换池（用户可在设置中选择及排序）。
+  static List<CDNService> stallPool = Pref.cdnStallPool;
+
+  // 持久游标每次卡顿只前进一步、到底回绕（对齐 realzza/bilibili-accelerator
+  // 的 rotateTarget）：若每次都从池头取第一个非当前项，前两名会互相乒乓，
+  // 后面的候选永远轮不到。
+  static int _stallCursor = -1;
+
+  /// 播放持续卡顿时轮换到池中下一个可用 CDN。仅内存生效，
+  /// 不覆盖用户持久化的选择。池为空或无可用项时返回 null。
+  static CDNService? rotateCdnService() {
+    final pool = stallPool;
+    if (pool.isEmpty) return null;
+    final current = cdnService;
+    for (int i = 0; i < pool.length; i++) {
+      _stallCursor = (_stallCursor + 1) % pool.length;
+      final candidate = pool[_stallCursor];
+      if (candidate == current || candidate == CDNService.baseUrl) continue;
+      if (candidate != CDNService.backupUrl && candidate.host == null) {
+        continue;
+      }
+      cdnService = candidate;
+      return candidate;
     }
-    return cdnService;
+    return null;
   }
 
   static String getLiveCdnUrl(CodecItem e, {int index = 0}) {

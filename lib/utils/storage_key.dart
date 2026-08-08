@@ -39,6 +39,7 @@ abstract final class SettingBoxKey {
       CDNService = 'CDNService',
       customCdnHost = 'customCdnHost',
       cdnStallRecovery = 'cdnStallRecovery',
+      cdnStallPool = 'cdnStallPool',
       disableAudioCDN = 'disableAudioCDN',
       autoPiP = 'autoPiP',
       enableAutoLongPressSpeed = 'enableAutoLongPressSpeed',

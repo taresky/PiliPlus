@@ -461,6 +461,16 @@ abstract final class Pref {
   static bool get cdnStallRecovery =>
       _setting.get(SettingBoxKey.cdnStallRecovery, defaultValue: true);
 
+  static List<CDNService> get cdnStallPool {
+    if (_setting.get(SettingBoxKey.cdnStallPool) case final List names) {
+      final byName = CDNService.values.asNameMap();
+      return names.map((e) => byName[e]).nonNulls.toList();
+    }
+    return CDNService.values
+        .where((e) => e != CDNService.baseUrl && e != CDNService.custom)
+        .toList();
+  }
+
   static bool get cdnSpeedTest =>
       _setting.get(SettingBoxKey.cdnSpeedTest, defaultValue: true);
 
