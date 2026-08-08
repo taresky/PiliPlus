@@ -23,6 +23,7 @@ enum CDNService {
   tf_hw('tf_hw（华为云）', 'upos-tf-all-hw.bilivideo.com'),
   tf_tx('tf_tx（腾讯云）', 'upos-tf-all-tx.bilivideo.com'),
   akamai('akamai（Akamai海外）', 'upos-hz-mirrorakam.akamaized.net'),
+  akamai_sz('akamai_sz（Akamai海外）', 'upos-sz-mirrorakam.akamaized.net'),
   aliov('aliov（阿里云海外）', 'upos-sz-mirroraliov.bilivideo.com'),
   cosov('cosov（腾讯云海外）', 'upos-sz-mirrorcosov.bilivideo.com'),
   hwov('hwov（华为云海外）', 'upos-sz-mirrorhwov.bilivideo.com'),
@@ -35,6 +36,14 @@ enum CDNService {
   hk_eq_04('hk_eq_01-04（香港EQ，日本优化）', 'cn-hk-eq-01-04.bilivideo.com'),
   hk_eq_05('hk_eq_01-05（香港EQ，日本优化）', 'cn-hk-eq-01-05.bilivideo.com'),
   hk_eq_06('hk_eq_01-06（香港EQ，日本优化）', 'cn-hk-eq-01-06.bilivideo.com'),
+  // 01-07 无公开 A 记录；01-08..01-14 有解析但晚高峰表现波动，供测速备选
+  hk_eq_08('hk_eq_01-08（香港EQ）', 'cn-hk-eq-01-08.bilivideo.com'),
+  hk_eq_09('hk_eq_01-09（香港EQ）', 'cn-hk-eq-01-09.bilivideo.com'),
+  hk_eq_10('hk_eq_01-10（香港EQ）', 'cn-hk-eq-01-10.bilivideo.com'),
+  hk_eq_11('hk_eq_01-11（香港EQ）', 'cn-hk-eq-01-11.bilivideo.com'),
+  hk_eq_12('hk_eq_01-12（香港EQ）', 'cn-hk-eq-01-12.bilivideo.com'),
+  hk_eq_13('hk_eq_01-13（香港EQ）', 'cn-hk-eq-01-13.bilivideo.com'),
+  hk_eq_14('hk_eq_01-14（香港EQ）', 'cn-hk-eq-01-14.bilivideo.com'),
   custom('自定义 host'),
   ;
 
