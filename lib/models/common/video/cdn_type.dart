@@ -3,6 +3,8 @@
 //https://github.com/yujincheng08/BiliRoaming/blob/master/app/src/main/res/values/strings_raw.xml
 //https://github.com/yujincheng08/BiliRoaming/blob/master/app/src/main/res/values/arrays.xml
 
+import 'package:PiliPlus/utils/storage_pref.dart';
+
 enum CDNService {
   baseUrl('基础URL（不推荐）'),
   backupUrl('备用URL'),
@@ -25,12 +27,29 @@ enum CDNService {
   cosov('cosov（腾讯云海外）', 'upos-sz-mirrorcosov.bilivideo.com'),
   hwov('hwov（华为云海外）', 'upos-sz-mirrorhwov.bilivideo.com'),
   hk_bcache('hk_bcache（Bilibili海外）', 'cn-hk-eq-bcache-01.bilivideo.com'),
+  // 香港 EQ 节点，日本网络晚高峰实测优于官方分配的海外 CDN
+  // https://github.com/taresky/japan-bilibili-accelerator
+  hk_eq_01('hk_eq_01-01（香港EQ，日本优化）', 'cn-hk-eq-01-01.bilivideo.com'),
+  hk_eq_02('hk_eq_01-02（香港EQ，日本优化）', 'cn-hk-eq-01-02.bilivideo.com'),
+  hk_eq_03('hk_eq_01-03（香港EQ，日本优化）', 'cn-hk-eq-01-03.bilivideo.com'),
+  hk_eq_04('hk_eq_01-04（香港EQ，日本优化）', 'cn-hk-eq-01-04.bilivideo.com'),
+  hk_eq_05('hk_eq_01-05（香港EQ，日本优化）', 'cn-hk-eq-01-05.bilivideo.com'),
+  hk_eq_06('hk_eq_01-06（香港EQ，日本优化）', 'cn-hk-eq-01-06.bilivideo.com'),
+  custom('自定义 host'),
   ;
 
   final String desc;
-  final String? host;
+  final String? _host;
 
-  const CDNService(this.desc, [this.host]);
+  const CDNService(this.desc, [this._host]);
+
+  static String? customHost = Pref.customCdnHost;
+
+  String? get host => this == custom ? customHost : _host;
+
+  String get label => this == custom && customHost?.isNotEmpty == true
+      ? '自定义 host（$customHost）'
+      : desc;
 }
 
 // from https://rec.danmuji.org/dev/cdn-info/

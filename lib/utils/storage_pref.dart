@@ -455,6 +455,9 @@ abstract final class Pref {
   static bool get continuePlayingPart =>
       _setting.get(SettingBoxKey.continuePlayingPart, defaultValue: true);
 
+  static String? get customCdnHost =>
+      _setting.get(SettingBoxKey.customCdnHost);
+
   static bool get cdnSpeedTest =>
       _setting.get(SettingBoxKey.cdnSpeedTest, defaultValue: true);
 

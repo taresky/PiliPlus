@@ -6,11 +6,64 @@ import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/common/video/cdn_type.dart';
 import 'package:PiliPlus/models/common/video/video_type.dart';
 import 'package:PiliPlus/models/video/play/url.dart';
+import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/video_utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+
+/// 弹出 CDN 选择对话框；选择「自定义 host」时继续弹出输入框。
+/// 返回 null 表示未做任何更改。
+Future<CDNService?> showCdnDialog(
+  BuildContext context, {
+  BaseItem? sample,
+}) async {
+  final res = await showDialog<CDNService>(
+    context: context,
+    builder: (context) => CdnSelectDialog(sample: sample),
+  );
+  if (res == CDNService.custom) {
+    if (!context.mounted) return null;
+    String input = CDNService.customHost ?? '';
+    final host = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('输入 CDN host'),
+        content: TextFormField(
+          initialValue: input,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'cn-hk-eq-01-04.bilivideo.com',
+          ),
+          onChanged: (value) => input = value,
+        ),
+        actions: [
+          TextButton(
+            onPressed: Navigator.of(context).pop,
+            child: Text(
+              '取消',
+              style: TextStyle(color: ColorScheme.of(context).outline),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(input),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+    final cleaned = host
+        ?.trim()
+        .replaceFirst(RegExp('^https?://'), '')
+        .replaceFirst(RegExp('/.*'), '');
+    if (cleaned == null || cleaned.isEmpty) return null;
+    CDNService.customHost = cleaned;
+    await GStorage.setting.put(SettingBoxKey.customCdnHost, cleaned);
+  }
+  return res;
+}
 
 class SelectDialog<T> extends StatelessWidget {
   final T? value;
@@ -151,6 +204,10 @@ class _CdnSelectDialogState extends State<CdnSelectDialog> {
   Future<void> _testAllCdnServices(BaseItem videoItem) async {
     for (final item in CDNService.values) {
       if (!mounted) break;
+      if (item == CDNService.custom && item.host == null) {
+        _cdnResList[item.index].value = '未设置，选中后输入 host';
+        continue;
+      }
       await _testSingleCdn(item, videoItem);
     }
   }
@@ -245,7 +302,7 @@ class _CdnSelectDialogState extends State<CdnSelectDialog> {
   Widget build(BuildContext context) {
     return SelectDialog<CDNService>(
       title: 'CDN 设置',
-      values: CDNService.values.map((i) => (i, i.desc)).toList(),
+      values: CDNService.values.map((i) => (i, i.label)).toList(),
       value: VideoUtils.cdnService,
       subtitleBuilder: _cdnSpeedTest
           ? (context, index) {
