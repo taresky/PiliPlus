@@ -16,8 +16,11 @@ abstract final class VideoUtils {
     r'^https?://(?:upos-\w+-(?!302)\w+|(?:upos|proxy)-tf-[^/]+)\.(?:bilivideo|akamaized)\.(?:com|net)/upgcxcode',
   );
 
+  // P2P/PCDN families (szbdyd 及其后继域名) and the non-default-port heuristic
+  // (residential PCDN nodes listen on random high ports) from
+  // https://github.com/realzza/bilibili-accelerator
   static final _mCdnTfRegex = RegExp(
-    r'^https?://(?:(?:(?:\d{1,3}\.){3}\d{1,3}|[^/]+\.mcdn\.bilivideo\.(?:com|cn|net))(?:\:\d{1,5})?/v\d/resource)',
+    r'^https?://(?:(?:(?:\d{1,3}\.){3}\d{1,3}|[^/]+\.(?:mcdn\.bilivideo\.(?:com|cn|net)|szbdyd\.com|mountaintoys\.cn|nexusedgeio\.com|ahdohpiechei\.com))(?:\:\d{1,5})?|[^/]+\:\d{1,5})/v\d/resource',
   );
 
   static String getCdnUrl(
