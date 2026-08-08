@@ -71,7 +71,6 @@ class SelectDialog<T> extends StatelessWidget {
   final List<(T, String)> values;
   final Widget Function(BuildContext, int)? subtitleBuilder;
   final bool toggleable;
-  final List<Widget>? actions;
 
   const SelectDialog({
     super.key,
@@ -80,7 +79,6 @@ class SelectDialog<T> extends StatelessWidget {
     required this.title,
     this.subtitleBuilder,
     this.toggleable = false,
-    this.actions,
   });
 
   @override
@@ -89,7 +87,6 @@ class SelectDialog<T> extends StatelessWidget {
     return AlertDialog(
       clipBehavior: Clip.hardEdge,
       title: Text(title),
-      actions: actions,
       constraints: subtitleBuilder != null
           ? const BoxConstraints.tightFor(width: 320)
           : null,
@@ -142,7 +139,6 @@ class _CdnSelectDialogState extends State<CdnSelectDialog> {
   late final List<ValueNotifier<String?>> _cdnResList;
   late final List<CancelToken?> _tokens;
   late final bool _cdnSpeedTest;
-  final _fastest = ValueNotifier<(CDNService, double)?>(null);
 
   @override
   void initState() {
@@ -179,7 +175,6 @@ class _CdnSelectDialogState extends State<CdnSelectDialog> {
       for (final notifier in _cdnResList) {
         notifier.dispose();
       }
-      _fastest.dispose();
       _dio.close(force: true);
     }
     super.dispose();
@@ -273,11 +268,8 @@ class _CdnSelectDialogState extends State<CdnSelectDialog> {
   }
 
   void _updateSpeedResult(int index, int downloaded, int duration) {
-    final speed = downloaded / duration;
-    _cdnResList[index].value = '${speed.toStringAsPrecision(3)}MB/s';
-    if (_fastest.value == null || speed > _fastest.value!.$2) {
-      _fastest.value = (CDNService.values[index], speed);
-    }
+    final speed = (downloaded / duration).toStringAsPrecision(3);
+    _cdnResList[index].value = '${speed}MB/s';
   }
 
   void _handleSpeedTestError(dynamic error, int index) {
@@ -312,21 +304,6 @@ class _CdnSelectDialogState extends State<CdnSelectDialog> {
       title: 'CDN 设置',
       values: CDNService.values.map((i) => (i, i.label)).toList(),
       value: VideoUtils.cdnService,
-      actions: _cdnSpeedTest
-          ? [
-              ValueListenableBuilder(
-                valueListenable: _fastest,
-                builder: (context, fastest, _) => TextButton(
-                  onPressed: fastest == null
-                      ? null
-                      : () => Navigator.of(context).pop(fastest.$1),
-                  child: Text(
-                    fastest == null ? '测速中…' : '应用最快：${fastest.$1.name}',
-                  ),
-                ),
-              ),
-            ]
-          : null,
       subtitleBuilder: _cdnSpeedTest
           ? (context, index) {
               final item = _cdnResList[index];
