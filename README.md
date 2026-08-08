@@ -25,6 +25,25 @@
 
 <br/>
 
+## 本 Fork：日本网络优化
+
+本分支（`japan-cdn`）在上游 PiliPlus 基础上增加了针对日本（及海外）网络环境的播放优化，缓解晚高峰被分配到低质量海外 CDN 导致的 4K/高码率卡顿。
+
+思路参考 [realzza/bilibili-accelerator](https://github.com/realzza/bilibili-accelerator) 与 [taresky/japan-bilibili-accelerator](https://github.com/taresky/japan-bilibili-accelerator)。
+
+### 新增功能
+
+- **香港 EQ CDN 节点**：CDN 列表加入 `cn-hk-eq-01-01` ~ `01-14`（无 `01-07`）共 13 个节点，日本晚高峰实测优于官方分配的海外 CDN；另补充 Akamai SZ 镜像。
+- **自定义 CDN host**：CDN 列表新增「自定义 host」项，可填写任意 CDN 域名并持久保存，节点变化无需重新编译。
+- **卡顿自动切换 CDN**（设置 → 视频设置，默认开启）：播放持续缓冲约 2.5 秒判定为卡顿，按轮换列表自动切换 CDN 并从当前进度重载；仍卡顿则每 5 秒继续轮换。切换仅本次运行生效，不修改默认 CDN 设置。点击该设置行可自定义参与轮换的 CDN 及优先级顺序。
+- **PCDN/P2P 规避增强**：识别 `szbdyd` 调度家族的新域名（`mountaintoys.cn`、`nexusedgeio.com`、`ahdohpiechei.com`）及非标准端口的家用 PCDN 节点，统一改走 B 站官方 `proxy-tf` 代理。
+
+### 使用建议
+
+1. 设置 → 视频设置 → CDN 设置，等待测速完成后选择实测最快的节点（测速结果仅供参考，以实际播放体验为准）。
+2. 在「卡顿自动切换 CDN」中把轮换列表精简为自己网络下稳定的几个节点，卡顿时收敛更快。
+3. 播放中可通过播放器设置菜单随时切换 CDN 并重载视频。
+
 ## 适配平台
 
 - [x] Android
