@@ -19,8 +19,8 @@ abstract final class VideoUtils {
   // P2P/PCDN families (szbdyd 及其后继域名) and the non-default-port heuristic
   // (residential PCDN nodes listen on random high ports) from
   // https://github.com/realzza/bilibili-accelerator
-  static final _mCdnTfRegex = RegExp(
-    r'^https?://(?:(?:(?:\d{1,3}\.){3}\d{1,3}|[^/]+\.(?:mcdn\.bilivideo\.(?:com|cn|net)|szbdyd\.com|mountaintoys\.cn|nexusedgeio\.com|ahdohpiechei\.com))(?:\:\d{1,5})?|[^/]+\:\d{1,5})/v\d/resource',
+  static final _p2pPlaybackUrlRegex = RegExp(
+    r'^https?://(?:(?:(?:\d{1,3}\.){3}\d{1,3}|(?:[^/]+\.)?(?:mcdn\.bilivideo\.(?:com|cn|net)|szbdyd\.com|mountaintoys\.cn|nexusedgeio\.com|ahdohpiechei\.com))(?:\:\d{1,5})?|[^/:]+\:(?!(?:80|443)/)\d{1,5})/v\d/resource',
   );
 
   static String getCdnUrl(
@@ -54,7 +54,7 @@ abstract final class VideoUtils {
         }
       }
 
-      if (_mCdnTfRegex.hasMatch(url)) {
+      if (_p2pPlaybackUrlRegex.hasMatch(url)) {
         mcdnTf = url;
         continue;
       }

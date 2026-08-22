@@ -172,6 +172,7 @@ class VideoDetailController extends GetxController
   // realzza/bilibili-accelerator 一致（2.5s 宽限确认卡顿，卡顿持续则每 5s 继续轮换）
   Worker? _stallWorker;
   Timer? _stallTimer;
+  bool _isStallReloading = false;
   static const _stallGrace = Duration(milliseconds: 2500);
   static const _stallRetry = Duration(milliseconds: 5000);
 
@@ -403,6 +404,9 @@ class VideoDetailController extends GetxController
 
   // onWaiting/onPlaying：缓冲开始进入宽限期，恢复播放则取消
   void _onBufferingChange(bool buffering) {
+    // Reloading temporarily emits false before the replacement source starts.
+    // Keep the recovery cadence under _handleStall's control during that window.
+    if (_isStallReloading) return;
     _stallTimer?.cancel();
     _stallTimer = null;
     if (buffering) {
@@ -412,20 +416,34 @@ class VideoDetailController extends GetxController
 
   // 对齐 realzza 的 handleStall：先复查卡顿是否仍在，再轮换；
   // 轮换后继续排查，直到恢复播放（buffering=false 会取消计时）。
-  void _handleStall() {
+  Future<void> _handleStall() async {
     _stallTimer = null;
     if (isClosed ||
-        isQuerying ||
         !plPlayerController.isBuffering.value ||
         plPlayerController.cid != cid.value ||
         !plPlayerController.playerStatus.isPlaying) {
       return;
     }
+    if (isQuerying) {
+      _stallTimer = Timer(_stallRetry, _handleStall);
+      return;
+    }
     final next = VideoUtils.rotateCdnService();
     if (next == null) return;
+    playedTime = plPlayerController.videoPlayerController?.state.position;
     SmartDialog.showToast('播放卡顿，切换 CDN：${next.name}');
-    queryVideoUrl(fromReset: true);
-    _stallTimer = Timer(_stallRetry, _handleStall);
+    _isStallReloading = true;
+    try {
+      await queryVideoUrl(fromReset: true);
+    } finally {
+      _isStallReloading = false;
+      if (!isClosed &&
+          plPlayerController.isBuffering.value &&
+          plPlayerController.cid == cid.value &&
+          plPlayerController.playerStatus.isPlaying) {
+        _stallTimer = Timer(_stallRetry, _handleStall);
+      }
+    }
   }
 
   Future<void> getMediaList({
