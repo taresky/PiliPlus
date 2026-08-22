@@ -12,7 +12,7 @@ import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/video_utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 弹出 CDN 选择对话框；选择「自定义 host」时继续弹出输入框。
 /// 返回 null 表示未做任何更改。
