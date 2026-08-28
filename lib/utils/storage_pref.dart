@@ -290,7 +290,9 @@ abstract final class Pref {
 
   static CDNService get defaultCDNService {
     if (_setting.get(SettingBoxKey.CDNService) case final String cdnName) {
-      return CDNService.values.byName(cdnName);
+      // Newer builds may persist values such as `auto`. Unknown modes must use
+      // a complete server URL instead of being interpreted as a host override.
+      return CDNService.values.asNameMap()[cdnName] ?? CDNService.backupUrl;
     }
     return CDNService.backupUrl;
   }
@@ -455,8 +457,7 @@ abstract final class Pref {
   static bool get continuePlayingPart =>
       _setting.get(SettingBoxKey.continuePlayingPart, defaultValue: true);
 
-  static String? get customCdnHost =>
-      _setting.get(SettingBoxKey.customCdnHost);
+  static String? get customCdnHost => _setting.get(SettingBoxKey.customCdnHost);
 
   static bool get cdnStallRecovery =>
       _setting.get(SettingBoxKey.cdnStallRecovery, defaultValue: true);

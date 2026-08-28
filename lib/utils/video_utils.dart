@@ -2,6 +2,7 @@ import 'package:PiliPlus/models/common/video/cdn_type.dart';
 import 'package:PiliPlus/models/common/video/video_decode_type.dart';
 import 'package:PiliPlus/models_new/live/live_room_play_info/codec.dart';
 import 'package:PiliPlus/utils/extension/iterable_ext.dart';
+import 'package:PiliPlus/utils/playback_route_session.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 
@@ -29,16 +30,34 @@ abstract final class VideoUtils {
     bool isAudio = false,
   }) {
     defaultCDNService ??= cdnService;
+    final urlList = urls.toList();
 
     if (defaultCDNService == CDNService.baseUrl) {
-      return urls.first;
+      return urlList.first;
+    }
+
+    final preferredHost = defaultCDNService.host;
+    if (!(isAudio && disableAudioCDN) && preferredHost != null) {
+      for (final url in urlList) {
+        if (Uri.tryParse(url)?.host.toLowerCase() ==
+            preferredHost.toLowerCase()) {
+          // Preserve the server-provided query and signature when this CDN is
+          // already present in the playurl response.
+          return url;
+        }
+      }
+      if (preferredHost.endsWith('.akamaized.net')) {
+        // Cross-domain host rewriting can carry a bilivideo signature to an
+        // incompatible Akamai URL. Only use Akamai when the server supplied it.
+        return urlList.first;
+      }
     }
 
     String? mcdnTf;
     String? mcdnUpgcxcode;
 
     String last = '';
-    for (final url in urls) {
+    for (final url in urlList) {
       last = url;
       if (_mirrorRegex.hasMatch(url)) {
         final uri = Uri.parse(url);
@@ -96,28 +115,23 @@ abstract final class VideoUtils {
   /// Stall recovery 轮换池（用户可在设置中选择及排序）。
   static List<CDNService> stallPool = Pref.cdnStallPool;
 
-  // 持久游标每次卡顿只前进一步、到底回绕（对齐 realzza/bilibili-accelerator
-  // 的 rotateTarget）：若每次都从池头取第一个非当前项，前两名会互相乒乓，
-  // 后面的候选永远轮不到。
-  static int _stallCursor = -1;
-
-  /// 播放持续卡顿时轮换到池中下一个可用 CDN。仅内存生效，
-  /// 不覆盖用户持久化的选择。池为空或无可用项时返回 null。
-  static CDNService? rotateCdnService() {
-    final pool = stallPool;
-    if (pool.isEmpty) return null;
-    final current = cdnService;
-    for (int i = 0; i < pool.length; i++) {
-      _stallCursor = (_stallCursor + 1) % pool.length;
-      final candidate = pool[_stallCursor];
-      if (candidate == current || candidate == CDNService.baseUrl) continue;
-      if (candidate != CDNService.backupUrl && candidate.host == null) {
-        continue;
-      }
-      cdnService = candidate;
-      return candidate;
-    }
-    return null;
+  static PlaybackRouteSession createPlaybackRouteSession({
+    required Iterable<String> videoUrls,
+    Iterable<String> audioUrls = const [],
+  }) {
+    final preferredHost = switch (cdnService) {
+      CDNService.baseUrl || CDNService.backupUrl => null,
+      final service => service.host,
+    };
+    return PlaybackRouteSession(
+      videoUrls: videoUrls,
+      audioUrls: audioUrls,
+      preferredVideoHost: preferredHost,
+      preferredAudioHost: disableAudioCDN ? null : preferredHost,
+      fallbackVideoHostOrder: stallPool
+          .map((service) => service.host)
+          .whereType<String>(),
+    );
   }
 
   static String getLiveCdnUrl(CodecItem e, {int index = 0}) {
